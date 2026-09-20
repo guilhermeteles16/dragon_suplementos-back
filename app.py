@@ -249,7 +249,7 @@ def criar_produto():
 
     # URL que será salva no banco
     caminho_imagem = (
-        f"http://127.0.0.1:5000/uploads/{nome_arquivo}"
+        f"https://dragon-suplementos-back-end.onrender.com/uploads/{nome_arquivo}"
     )
 
 
