@@ -107,28 +107,26 @@ def criar_tabelas(conexao):
 
 def inserir_categorias_iniciais(conexao):
     """
-    Insere algumas categorias iniciais, apenas se a tabela estiver vazia.
-    Isso evita duplicar categorias toda vez que o servidor iniciar.
+    Garante que as categorias utilizadas pelo sistema existam no banco.
+    Se alguma categoria já existir, ela não será duplicada.
     """
     cursor = conexao.cursor()
-    cursor.execute("SELECT COUNT(*) FROM categorias")
-    total = cursor.fetchone()[0]
 
-    if total == 0:
-        categorias_iniciais = [
-            ("Whey Protein",),
-            ("Creatina",),
-            ("Pré-Treino",),
-            ("Vitaminas",),
-            ("Acessórios",),
-        ]
-        cursor.executemany(
-            "INSERT INTO categorias (nome) VALUES (?)",
-            categorias_iniciais
-        )
-        conexao.commit()
-        print("Categorias iniciais inseridas com sucesso.")
+    categorias_iniciais = [
+        ("suplementos",),
+        ("roupas",),
+        ("acessorios",),
+        ("equipamentos",),
+    ]
 
+    cursor.executemany(
+        "INSERT OR IGNORE INTO categorias (nome) VALUES (?)",
+        categorias_iniciais
+    )
+
+    conexao.commit()
+
+    print("Categorias verificadas com sucesso.")
 
 def inicializar_banco():
     """
