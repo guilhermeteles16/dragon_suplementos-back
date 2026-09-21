@@ -48,6 +48,7 @@ def produto_para_dict(linha):
         "imagem": linha["imagem"],
         "descricao": linha["descricao"],
         "preco": linha["preco"],
+        "estoque": linha["estoque"],
         "categoria_id": linha["categoria_id"],
         "categoria": linha["categoria_nome"],
         "data_cadastro": linha["data_cadastro"],
@@ -189,6 +190,7 @@ def criar_produto():
     categoria = request.form.get("categoria")
     descricao = request.form.get("descricao")
     preco = request.form.get("preco")
+    estoque = request.form.get("estoque")
 
     imagem = request.files.get("imagem")
 
@@ -202,10 +204,25 @@ def criar_produto():
             "O campo 'nome' é obrigatório"
         )
 
+    if not categoria:
+        return resposta_erro(
+            "O campo 'categoria' é obrigatório"
+        )
+
     if preco is None:
         return resposta_erro(
             "O campo 'preco' é obrigatório"
         )
+
+    if estoque is None:
+        return resposta_erro(
+            "O campo 'estoque' é obrigatório"
+        )
+
+
+    # ------------------------------------------------------------------------
+    # Validar preço
+    # ------------------------------------------------------------------------
 
     try:
         preco = float(preco)
@@ -220,6 +237,29 @@ def criar_produto():
             "O preço não pode ser negativo"
         )
 
+
+    # ------------------------------------------------------------------------
+    # Validar estoque
+    # ------------------------------------------------------------------------
+
+    try:
+        estoque = int(estoque)
+
+    except (ValueError, TypeError):
+        return resposta_erro(
+            "O campo 'estoque' deve ser um número inteiro"
+        )
+
+    if estoque < 0:
+        return resposta_erro(
+            "O estoque não pode ser negativo"
+        )
+
+
+    # ------------------------------------------------------------------------
+    # Validar imagem
+    # ------------------------------------------------------------------------
+
     if imagem is None:
         return resposta_erro(
             "A imagem é obrigatória"
@@ -229,6 +269,38 @@ def criar_produto():
         return resposta_erro(
             "Nome da imagem inválido"
         )
+
+
+    # ------------------------------------------------------------------------
+    # Abrir conexão
+    # ------------------------------------------------------------------------
+
+    conexao = obter_conexao()
+
+
+    # ------------------------------------------------------------------------
+    # Encontrar categoria
+    # ------------------------------------------------------------------------
+
+    categoria_linha = conexao.execute("""
+        SELECT id, nome
+        FROM categorias
+        WHERE LOWER(nome) = LOWER(?)
+    """, (
+        categoria.strip(),
+    )).fetchone()
+
+
+    if categoria_linha is None:
+
+        conexao.close()
+
+        return resposta_erro(
+            "A categoria informada não existe"
+        )
+
+
+    categoria_id = categoria_linha["id"]
 
 
     # ------------------------------------------------------------------------
@@ -247,39 +319,15 @@ def criar_produto():
     imagem.save(caminho_arquivo)
 
 
-    # URL que será salva no banco
+    # URL da imagem
     caminho_imagem = (
         f"https://dragon-suplementos-back-end.onrender.com/uploads/{nome_arquivo}"
     )
 
 
     # ------------------------------------------------------------------------
-    # Encontrar categoria
-    # ------------------------------------------------------------------------
-
-    categoria_id = None
-
-    if categoria:
-
-        conexao = obter_conexao()
-
-        categoria_linha = conexao.execute("""
-            SELECT id
-            FROM categorias
-            WHERE LOWER(nome) = LOWER(?)
-        """, (categoria,)).fetchone()
-
-        conexao.close()
-
-        if categoria_linha:
-            categoria_id = categoria_linha["id"]
-
-
-    # ------------------------------------------------------------------------
     # Salvar produto no banco
     # ------------------------------------------------------------------------
-
-    conexao = obter_conexao()
 
     cursor = conexao.execute("""
         INSERT INTO produtos
@@ -288,16 +336,19 @@ def criar_produto():
             imagem,
             descricao,
             preco,
+            estoque,
             categoria_id
         )
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
     """, (
         nome,
         caminho_imagem,
         descricao,
         preco,
+        estoque,
         categoria_id
     ))
+
 
     conexao.commit()
 
@@ -315,6 +366,7 @@ def criar_produto():
             p.imagem,
             p.descricao,
             p.preco,
+            p.estoque,
             p.categoria_id,
             p.data_cadastro,
             c.nome AS categoria_nome
@@ -322,15 +374,23 @@ def criar_produto():
         LEFT JOIN categorias c
             ON p.categoria_id = c.id
         WHERE p.id = ?
-    """, (novo_id,)).fetchone()
+    """, (
+        novo_id,
+    )).fetchone()
+
 
     conexao.close()
+
+
+    # ------------------------------------------------------------------------
+    # Retornar produto criado
+    # ------------------------------------------------------------------------
 
     return jsonify(
         produto_para_dict(linha)
     ), 201
-
-
+    
+    
 # ATUALIZAR PRODUTO
 @app.route("/api/produtos/<int:produto_id>", methods=["PUT"])
 def atualizar_produto(produto_id):
