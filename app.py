@@ -126,6 +126,7 @@ def listar_produtos():
             p.imagem,
             p.descricao,
             p.preco,
+            p.estoque,
             p.categoria_id,
             p.data_cadastro,
             c.nome AS categoria_nome
@@ -158,6 +159,7 @@ def obter_produto(produto_id):
             p.imagem,
             p.descricao,
             p.preco,
+            p.estoque,
             p.categoria_id,
             p.data_cadastro,
             c.nome AS categoria_nome
@@ -523,6 +525,7 @@ def atualizar_produto(produto_id):
             p.imagem,
             p.descricao,
             p.preco,
+            p.estoque,
             p.categoria_id,
             p.data_cadastro,
             c.nome AS categoria_nome
